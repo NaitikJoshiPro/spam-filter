@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+scikit-learn
+pandas
+joblib
+pyyaml
+tldextract
+python-multipart
+pydantic>=2
+requests

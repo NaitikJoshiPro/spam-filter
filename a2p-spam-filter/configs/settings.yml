@@ -1,0 +1,5 @@
+model_path: "model/artifacts/model.joblib"
+vectorizer_path: "model/artifacts/vectorizer.joblib"
+block_threshold: 0.8
+gray_zone_low: 0.45
+gray_zone_high: 0.55

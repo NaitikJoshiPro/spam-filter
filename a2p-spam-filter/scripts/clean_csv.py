@@ -1,0 +1,75 @@
+import argparse, re, unicodedata, sys
+import pandas as pd
+
+def norm_unicode(s: str) -> str:
+    return unicodedata.normalize("NFKC", s)
+
+URL_RE = re.compile(r'(https?://|www\.)\S+', re.IGNORECASE)
+
+def clean_text(s: str) -> str:
+    s = '' if pd.isna(s) else str(s)
+    s = norm_unicode(s)
+    # normalize newlines, tabs
+    s = s.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ')
+    # replace urls with a token
+    s = URL_RE.sub(' <URL> ', s)
+    # drop control chars & weird punctuation except <>& (keep for token), keep alnum and spaces
+    s = re.sub(r'[^0-9A-Za-z<>& ]+', ' ', s)
+    # collapse whitespace
+    s = re.sub(r'\s+', ' ', s).strip()
+    # lowercase
+    s = s.lower()
+    return s
+
+CATEGORY_MAP = {
+    'spam': 'spam',
+    'transactional': 'transactional',
+    'promo': 'promotional',
+    'promotional': 'promotional',
+}
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--input', required=True, help='Path to raw CSV')
+    ap.add_argument('--output', required=True, help='Path to write cleaned CSV')
+    ap.add_argument('--message-col', default='Message', help='Name of message column in raw CSV')
+    ap.add_argument('--category-col', default='Category', help='Name of category column in raw CSV')
+    ap.add_argument('--drop-empty', action='store_true', help='Drop rows with empty cleaned_message')
+    args = ap.parse_args()
+
+    df = pd.read_csv(args.input)
+    if args.message_col not in df.columns:
+        sys.exit(f"ERROR: message column '{args.message_col}' not found. Found: {list(df.columns)}")
+    if args.category_col not in df.columns:
+        sys.exit(f"ERROR: category column '{args.category_col}' not found. Found: {list(df.columns)}")
+
+    # Drop NaNs/duplicates on original message
+    df = df.dropna(subset=[args.message_col])
+    df = df.drop_duplicates(subset=[args.message_col])
+
+    # Clean text
+    df['cleaned_message'] = df[args.message_col].apply(clean_text)
+
+    # Optionally drop if cleaned becomes empty
+    if args.drop_empty:
+        df = df[df['cleaned_message'].str.len() > 0]
+
+    # Normalize categories
+    df['category'] = df[args.category_col].astype(str).str.strip().str.lower().map(CATEGORY_MAP)
+    # Default unknown/missing to spam (safer)
+    df['category'] = df['category'].fillna('spam')
+
+    # Standardize columns
+    out = df.rename(columns={args.message_col: 'message'})[['message', 'category', 'cleaned_message']]
+
+    # Second-pass dedupe on cleaned message (case-insensitive already)
+    out = out.drop_duplicates(subset=['cleaned_message'])
+
+    out.to_csv(args.output, index=False)
+    print(f"Saved cleaned CSV to: {args.output}")
+    print("Label distribution:")
+    print(out['category'].value_counts())
+    print(f"Rows: {len(out)}")
+
+if __name__ == '__main__':
+    main()

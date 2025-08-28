@@ -1,0 +1,7 @@
+domains:
+  - trip.com
+  - icicibank.com
+phrases:
+  - "your otp is"
+  - "thank you for shopping with"
+sender_ids: []
