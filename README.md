@@ -8,6 +8,30 @@ It combines **rule-based filtering**, a **whitelisting layer**, and a **lightwei
 - Supports **trusted whitelist bypass** (domains, OTP templates, sender IDs)
 - Runs in **real-time (<100ms/message on CPU)** inside a containerized API
 
+## Live Demo (Temporary)
+This service is currently **live** on our GCP instance and open for testing for the next week. (also just a heads up the sub 100ms wont be possible for the time being because the gcp instance that i wanted wasnt available in the Mumbai region, i usually do GPU heavy stuff so i use L4's which are not generally available here)
+
+### Base URL
+http://34.59.101.42:8080/check_sms
+
+### Example Requests (feel free to change the messages and try to break this model)
+
+#### OTP / Transactional (should be allowed via whitelist)
+```bash
+curl -X POST http://34.59.101.42:8080/check_sms \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Your OTP is 123456 for ICICI login"}'
+```
+#### Expected Output
+```
+{
+  "verdict": "allowed",
+  "reason": "whitelisted"
+}
+
+```
+
+### Base URL
 ## Features
 - **SMS preprocessing & dataset cleaning**
   - Deduplication, lowercasing, noise/URL stripping
@@ -62,3 +86,4 @@ a2p-spam-filter/
 ├── requirements.txt     # Python deps
 ├── Makefile             # Shortcuts for train/build/run
 └── README.md            # This file
+```
